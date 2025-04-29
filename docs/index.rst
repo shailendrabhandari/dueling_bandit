@@ -10,8 +10,6 @@ A Python package for preference-based online learning with dueling bandits. Impl
    :maxdepth: 2
    :caption: Contents:
 
-   modules
-
 Indices and tables
 ==================
 

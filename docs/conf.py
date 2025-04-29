@@ -1,13 +1,12 @@
 project = 'Dueling Bandit Toolkit'
-copyright = '2025, Shailendra Bhandari'
-author = 'Shailendra Bhandari'
+copyright = '2025, Shailendra'
+author = 'Shailendra'
 release = '0.1.0'
 
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinxcontrib.napoleon',
 ]
 
 templates_path = ['_templates']
