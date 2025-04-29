@@ -1,59 +1,107 @@
 # Dueling Bandit Toolkit
 
-A Python package for preference-based online learning with dueling bandits. This toolkit implements algorithms like Double Thompson Sampling, PARWiS, and Contextual PARWiS, with support for real-world datasets (Jester, MovieLens) and evaluation metrics.
-Features
+[![Documentation Status](https://readthedocs.org/projects/dueling-bandit/badge/?version=latest)](https://dueling-bandit.readthedocs.io/en/latest/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen)](https://github.com/shailendrabhandari/dueling_bandit/blob/main/LICENSE)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dueling-bandit)](https://pypi.org/project/dueling-bandit/)
+[![PyPI](https://img.shields.io/pypi/v/dueling-bandit)](https://pypi.org/project/dueling-bandit/)
+[![Downloads](https://pepy.tech/badge/dueling-bandit)](https://pepy.tech/project/dueling-bandit)
+![GitHub watchers](https://img.shields.io/github/watchers/shailendrabhandari/dueling_bandit?style=social)
+![GitHub stars](https://img.shields.io/github/stars/shailendrabhandari/dueling_bandit?style=social)
 
-Algorithms: Double Thompson Sampling, PARWiS, Contextual PARWiS, and Random Pair baseline.
-Environment: Bradley-Terry model with optional contextual features.
-Datasets: Synthetic, Jester, and MovieLens support.
-Metrics: Cumulative regret, recovery fraction, true/reported ranks, and separation (Δ_1,2).
-Visualization: Plotting functions for experiment results.
+The **Dueling Bandit Toolkit** is a Python package designed for preference-based online learning using dueling bandit algorithms. It provides robust implementations of state-of-the-art algorithms, support for real-world datasets, and comprehensive evaluation metrics, making it an ideal tool for researchers and practitioners in machine learning and decision-making systems.
 
-Installation
+## Features
+
+- **Algorithms**: Includes Double Thompson Sampling, PARWiS, Contextual PARWiS, and a Random Pair baseline.
+- **Environment**: Supports the Bradley-Terry model with optional contextual features for flexible experimentation.
+- **Datasets**: Compatible with synthetic data and real-world datasets like Jester and MovieLens.
+- **Metrics**: Evaluates performance with cumulative regret, recovery fraction, true/reported ranks, and separation (Δ₁,₂).
+- **Visualization**: Offers plotting functions to visualize experiment results using Matplotlib.
+
+## Installation
+
+Install the package via pip from [PyPI](https://pypi.org/project/dueling-bandit/):
+
+```bash
 pip install dueling-bandit
+```
 
-Usage
+Ensure you have Python 3.8 or higher.
+
+## Quick Start
+
+Here's a simple example to get started with the toolkit:
+
+```python
 from dueling_bandit.environment import DuelingBanditEnv
-from dueling_bandit.agents import DoubleThompsonSamplingAgentpython -m build
+from dueling_bandit.agents import DoubleThompsonSamplingAgent
 from dueling_bandit.experiments import run_simulation
+from dueling_bandit.plotting import plot_metric
 
-# Create environment
+# Create a synthetic Bradley-Terry environment
 env = DuelingBanditEnv.random_bt(k=20, d=5, seed=42)
 
-# Initialize agent
+# Initialize the Double Thompson Sampling agent
 agent = DoubleThompsonSamplingAgent(k=20, seed=42)
 
-# Run simulation
+# Run a simulation for 500 duels
 results = run_simulation(env, agent, horizon=500)
 
-# Plot results (requires matplotlib)
-from dueling_bandit.plotting import plot_metric
+# Visualize the cumulative regret
 plot_metric({'500': {'Double TS': results}}, budget=500, dataset='synthetic', metric='mean_regret')
+```
 
-Requirements
+This code sets up a synthetic environment, runs a simulation with the Double Thompson Sampling algorithm, and plots the cumulative regret.
 
-Python >= 3.8
-numpy, matplotlib, scipy, pandas
+## Requirements
 
-Install dependencies:
+- Python >= 3.8
+- Dependencies: `numpy`, `matplotlib`, `scipy`, `pandas`
+
+Install all dependencies:
+
+```bash
 pip install -r requirements.txt
+```
 
-Development
+## Development
 
-Clone the repository:git clone https://github.com/shailendrabhandari/dueling_bandit.git
-cd dueling-bandit
+To contribute or experiment with the toolkit:
 
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/shailendrabhandari/dueling_bandit.git
+   cd dueling_bandit
+   ```
+2. Install in editable mode:
+   ```bash
+   pip install -e .
+   ```
+3. Run tests to ensure everything works:
+   ```bash
+   pytest tests/
+   ```
 
-Install in editable mode:pip install -e .
+## Documentation
 
+Comprehensive documentation is available at [ReadTheDocs](https://dueling-bandit.readthedocs.io/en/latest/). It includes detailed API references, tutorials, and examples to help you get the most out of the toolkit.
 
-Run tests:pytest tests/
+## License
 
+This project is licensed under the [MIT License](LICENSE).
 
+## Contributing
 
-Documentation
-Full documentation is available at ReadTheDocs.
-License
-MIT License. See LICENSE for details.
-Contributing
-Contributions are welcome! Please open an issue or pull request on GitHub.
+Contributions are welcome! Whether it's bug fixes, new features, or documentation improvements, please:
+1. Open an issue to discuss your idea.
+2. Submit a pull request with your changes.
+
+See the [Contributing Guidelines](https://github.com/shailendrabhandari/dueling_bandit/blob/main/CONTRIBUTING.md) for more details.
+
+## Contact
+
+For questions or support, please open an issue on [GitHub](https://github.com/shailendrabhandari/dueling_bandit/issues) or contact Shailendra at [shailendra.bhandari@oslomet.no](mailto:shailendra.bhandari@oslomet.no).
+
+---
+
+*Happy dueling!*
