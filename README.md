@@ -14,7 +14,7 @@ pip install dueling-bandit
 
 Usage
 from dueling_bandit.environment import DuelingBanditEnv
-from dueling_bandit.agents import DoubleThompsonSamplingAgent
+from dueling_bandit.agents import DoubleThompsonSamplingAgentpython -m build
 from dueling_bandit.experiments import run_simulation
 
 # Create environment
