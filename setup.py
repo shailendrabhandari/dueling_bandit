@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="dueling-bandit",
-    version="0.1.0",
+    version="0.1.1",
     packages=["dueling_bandit"],  
     package_dir={"dueling_bandit": "dueling_bandit"},
     include_package_data=True,
