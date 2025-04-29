@@ -31,4 +31,4 @@ Modules
 .. automodule:: dueling_bandit.plotting
    :members:
    :undoc-members:
-   :show
+   :show-inheritance:

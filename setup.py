@@ -5,7 +5,13 @@ setup(
     version="0.1.1",
     packages=["dueling_bandit"],  
     package_dir={"dueling_bandit": "dueling_bandit"},
-    include_package_data=True,
+    include_package_data=True,def random_bt(k: int, d: int = 0, seed: Optional[int] = None) -> "DuelingBanditEnv":
+    rng = np.random.default_rng(seed)
+    utilities = rng.normal(size=k)
+    P = 1.0 / (1.0 + np.exp(utilities[:, None] - utilities[None, :]))
+    np.fill_diagonal(P, 0.5)
+    features = rng.normal(size=(k, d)) if d > 0 else None
+    return DuelingBanditEnv(P, features, seed)
     install_requires=[
         "numpy>=1.21.0",
         "matplotlib>=3.4.0",

@@ -70,7 +70,8 @@ def evaluate(k: int, horizon: int, dataset: str = 'synthetic', d: int = 0, n_run
         'Double TS': DoubleThompsonSamplingAgent,
         'Random': RandomPairAgent,
         'PARWiS': PARWiSAgent,
-        'Contextual PARWiS': ContextualPARWiSAgent
+        'Contextual PARWiS': ContextualPARWiSAgent,
+        'RL PARWiS': RLPARWiSAgent
     }
     
     for name, AgentCls in agents.items():
