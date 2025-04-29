@@ -1,71 +1,96 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 import numpy as np
 from .environment import DuelingBanditEnv
-from .agents import DoubleThompsonSamplingAgent, RandomPairAgent, PARWiSAgent, ContextualPARWiSAgent
-from .datasets import load_jester_data, load_movielens_data
+from .agents import DoubleThompsonSamplingAgent, RandomPairAgent, PARWiSAgent, ContextualPARWiSAgent, RLPARWiSAgent
+from .datasets import load_jester_data, load_movielens_data, ratings_to_preference_matrix
 
-def run_simulation(env: DuelingBanditEnv, agent, horizon: int) -> Dict[str, List]:
-    best_arm = env.best_arm()
-    regret = []
-    recovery = []
-    true_rank_reported = []
-    reported_rank_true = []
-    cum_reg = 0
+def run_simulation(env: DuelingBanditEnv, agent, horizon: int) -> Dict[str, np.ndarray]:
+    """
+    Run a single simulation with the given environment and agent.
 
-    if isinstance(agent, (PARWiSAgent, ContextualPARWiSAgent)):
+    Args:
+        env (DuelingBanditEnv): The dueling bandit environment.
+        agent: The agent to evaluate.
+        horizon (int): Number of duels to perform.
+
+    Returns:
+        Dict[str, np.ndarray]: Metrics (mean_regret, std_regret, mean_recovery, etc.).
+    """
+    k = env.k
+    true_rank = env.true_rank()
+    true_winner = true_rank[0]
+    regret = np.zeros(horizon)
+    recovery = np.zeros(horizon)
+    true_rank_reported = np.zeros(horizon)
+    reported_rank_true = np.zeros(horizon)
+
+    if hasattr(agent, 'phase1'):
         agent.phase1(env)
-        t = env.k - 1
-        recommendation = agent.recommend()
-        true_order = env.true_order()
-        regret.append(cum_reg)
-        recovery.append(int(recommendation == best_arm))
-        true_rank_reported.append(true_order.index(recommendation) + 1)
-        if hasattr(agent, 'pi'):
-            sorted_indices = np.argsort(-agent.pi)
-            rank = np.where(sorted_indices == best_arm)[0][0] + 1
-            reported_rank_true.append(rank)
-        else:
-            reported_rank_true.append(0)
+        init_comparisons = k - 1
+        for t in range(min(init_comparisons, horizon)):
+            regret[t] = 0  # Initial phase regret
+            recovery[t] = 1 if agent.recommend() == true_winner else 0
+            true_rank_reported[t] = np.where(true_rank == agent.recommend())[0][0] + 1
+            if hasattr(agent, 'pi'):
+                reported_rank_true[t] = np.argsort(-agent.pi).tolist().index(true_winner) + 1
     else:
-        t = 0
+        init_comparisons = 0
 
-    while t < horizon:
-        a, b = agent.select_pair()
-        winner, _ = env.duel(a, b)
-        agent.update(a, b, winner)
-        recommendation = agent.recommend()
-        true_order = env.true_order()
-        
-        if winner != best_arm:
-            cum_reg += 1
-        regret.append(cum_reg)
-        recovery.append(int(recommendation == best_arm))
-        true_rank_reported.append(true_order.index(recommendation) + 1)
+    for t in range(init_comparisons, horizon):
+        a, b = agent.select_pair() if not hasattr(agent, 'features') else agent.select_pair(env.features)
+        winner, loser = env.duel(a, b)
+        agent.update(a, b, winner, env.features)
+        regret[t] = 1 if winner != true_winner else 0
+        recovery[t] = 1 if agent.recommend() == true_winner else 0
+        true_rank_reported[t] = np.where(true_rank == agent.recommend())[0][0] + 1
         if hasattr(agent, 'pi'):
-            sorted_indices = np.argsort(-agent.pi)
-            rank = np.where(sorted_indices == best_arm)[0][0] + 1
-            reported_rank_true.append(rank)
-        else:
-            reported_rank_true.append(0)
-        
-        t += 1
-
-    while len(regret) < horizon:
-        regret.append(cum_reg)
-        recovery.append(recovery[-1])
-        true_rank_reported.append(true_rank_reported[-1])
-        reported_rank_true.append(reported_rank_true[-1])
+            reported_rank_true[t] = np.argsort(-agent.pi).tolist().index(true_winner) + 1
 
     return {
-        'regret': regret[:horizon],
-        'recovery': recovery[:horizon],
-        'true_rank_reported': true_rank_reported[:horizon],
-        'reported_rank_true': reported_rank_true[:horizon]
+        'mean_regret': np.cumsum(regret),
+        'std_regret': np.std(regret) * np.ones(horizon),
+        'mean_recovery': recovery,
+        'std_recovery': np.std(recovery) * np.ones(horizon),
+        'mean_true_rank': true_rank_reported,
+        'std_true_rank': np.std(true_rank_reported) * np.ones(horizon),
+        'mean_reported_rank': reported_rank_true,
+        'std_reported_rank': np.std(reported_rank_true) * np.ones(horizon)
     }
 
-def evaluate(k: int, horizon: int, dataset: str = 'synthetic', d: int = 0, n_runs: int = 30, seed_offset: int = 0) -> Dict[str, Dict[str, np.ndarray]]:
-    results = {}
-    separations = []
+def evaluate(k: int, horizon: int, dataset: str = 'synthetic', n_runs: int = 30, seed: Optional[int] = None) -> Dict[str, Dict[int, Dict[str, Dict[str, np.ndarray]]]]:
+    """
+    Evaluate all agents on the specified dataset.
+
+    Args:
+        k (int): Number of items.
+        horizon (int): Budget for comparisons.
+        dataset (str): Dataset to use ('synthetic', 'jester', 'movielens').
+        n_runs (int): Number of runs.
+        seed (Optional[int]): Random seed.
+
+    Returns:
+        Dict[str, Dict[int, Dict[str, Dict[str, np.ndarray]]]]: Results per dataset, budget, and agent.
+    """
+    rng = np.random.default_rng(seed)
+    seeds = rng.integers(0, 10000, size=n_runs)
+    results = {dataset: {horizon: {}}}
+
+    if dataset == 'synthetic':
+        envs = [DuelingBanditEnv.random_bt(k, d=5, seed=int(s)) for s in seeds]
+    elif dataset == 'jester':
+        ratings = load_jester_data(k=k, seed=seed)
+        P = ratings_to_preference_matrix(ratings)
+        envs = [DuelingBanditEnv(P, seed=int(s)) for s in seeds]
+    elif dataset == 'movielens':
+        ratings = load_movielens_data(k=k, seed=seed)
+        P = ratings_to_preference_matrix(ratings)
+        envs = [DuelingBanditEnv(P, seed=int(s)) for s in seeds]
+    else:
+        raise ValueError(f"Unknown dataset: {dataset}")
+
+    delta12 = np.mean([env.delta12() for env in envs])
+    results[dataset]['separation'] = {'delta12': delta12}
+
     agents = {
         'Double TS': DoubleThompsonSamplingAgent,
         'Random': RandomPairAgent,
@@ -73,50 +98,23 @@ def evaluate(k: int, horizon: int, dataset: str = 'synthetic', d: int = 0, n_run
         'Contextual PARWiS': ContextualPARWiSAgent,
         'RL PARWiS': RLPARWiSAgent
     }
-    
-    for name, AgentCls in agents.items():
-        all_regrets = np.zeros((n_runs, horizon))
-        all_recoveries = np.zeros((n_runs, horizon))
-        all_true_ranks = np.zeros((n_runs, horizon))
-        all_reported_ranks = np.zeros((n_runs, horizon))
-        
-        for run in range(n_runs):
-            seed = seed_offset + run
-            if dataset == 'synthetic':
-                env = DuelingBanditEnv.random_bt(k, d, seed=seed)
-            elif dataset == 'jester':
-                ratings = load_jester_data(k=k)
-                env = DuelingBanditEnv.from_ratings(ratings, k, seed=seed)
-            elif dataset == 'movielens':
-                ratings = load_movielens_data(k=k)
-                env = DuelingBanditEnv.from_ratings(ratings, k, seed=seed)
-            else:
-                raise ValueError(f"Unknown dataset: {dataset}")
 
-            if name == list(agents.keys())[0]:
-                separations.append(env.separation())
-            
-            agent = AgentCls(k=k, d=d, seed=seed) if name == 'Contextual PARWiS' else AgentCls(k=k, seed=seed)
-            sim_results = run_simulation(env, agent, horizon)
-            
-            all_regrets[run] = sim_results['regret']
-            all_recoveries[run] = sim_results['recovery']
-            all_true_ranks[run] = sim_results['true_rank_reported']
-            all_reported_ranks[run] = sim_results['reported_rank_true']
-        
-        results[name] = {
-            'mean_regret': all_regrets.mean(axis=0),
-            'std_regret': all_regrets.std(axis=0),
-            'mean_recovery': all_recoveries.mean(axis=0),
-            'std_recovery': all_recoveries.std(axis=0),
-            'mean_true_rank': all_true_ranks.mean(axis=0),
-            'std_true_rank': all_true_ranks.std(axis=0),
-            'mean_reported_rank': all_reported_ranks.mean(axis=0),
-            'std_reported_rank': all_reported_ranks.std(axis=0)
+    for name, AgentClass in agents.items():
+        metrics = {
+            'mean_regret': np.zeros(horizon),
+            'std_regret': np.zeros(horizon),
+            'mean_recovery': np.zeros(horizon),
+            'std_recovery': np.zeros(horizon),
+            'mean_true_rank': np.zeros(horizon),
+            'std_true_rank': np.zeros(horizon),
+            'mean_reported_rank': np.zeros(horizon),
+            'std_reported_rank': np.zeros(horizon)
         }
-    
-    results['separation'] = {
-        'mean': np.mean(separations),
-        'std': np.std(separations)
-    }
+        for env, s in zip(envs, seeds):
+            agent = AgentClass(k=k, d=5 if name == 'Contextual PARWiS' else 0, seed=int(s))
+            run_results = run_simulation(env, agent, horizon)
+            for key in metrics:
+                metrics[key] += run_results[key] / n_runs
+        results[dataset][horizon][name] = metrics
+
     return results

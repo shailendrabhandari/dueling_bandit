@@ -39,7 +39,8 @@ AGENT_STYLES = {
     'Double TS': {'color': 'blue', 'linestyle': '-'},
     'Random': {'color': 'orange', 'linestyle': '--'},
     'PARWiS': {'color': 'green', 'linestyle': '-'},
-    'Contextual PARWiS': {'color': 'red', 'linestyle': '--'}
+    'Contextual PARWiS': {'color': 'red', 'linestyle': '--'},
+    'RL PARWiS': {'color': 'purple', 'linestyle': '-'}
 }
 
 def plot_metric(results: Dict[int, Dict[str, Dict[str, np.ndarray]]], 
@@ -48,8 +49,19 @@ def plot_metric(results: Dict[int, Dict[str, Dict[str, np.ndarray]]],
                 metric: str, 
                 show_error_bars: bool = True, 
                 save_path: Optional[str] = None):
+    """
+    Plot a single metric for all agents.
+
+    Args:
+        results: Dictionary of results per budget and agent.
+        budget: Budget to plot.
+        dataset: Dataset name.
+        metric: Metric to plot (e.g., 'mean_regret').
+        show_error_bars: Whether to show standard deviation error bars.
+        save_path: Path to save the figure.
+    """
     if metric not in METRIC_PROPERTIES:
-        raise ValueError(f"Unknown metric: {metric}. Available metrics: {list(METRIC_PROPERTIES.keys())}")
+        raise ValueError(f"Unknown metric: {metric}. Available: {list(METRIC_PROPERTIES.keys())}")
 
     props = METRIC_PROPERTIES[metric]
     plt.figure(figsize=(8, 6))
@@ -79,6 +91,7 @@ def plot_metric(results: Dict[int, Dict[str, Dict[str, np.ndarray]]],
     plt.tight_layout()
 
     if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -87,14 +100,22 @@ def plot_all_metrics(results: Dict[str, Dict[int, Dict[str, Dict[str, np.ndarray
                      budgets: List[int], 
                      metrics: Optional[List[str]] = None, 
                      save_dir: Optional[str] = None):
+    """
+    Plot all metrics for all datasets and budgets.
+
+    Args:
+        results: Dictionary of results per dataset, budget, and agent.
+        datasets: List of dataset names.
+        budgets: List of budgets.
+        metrics: List of metrics to plot (default: all).
+        save_dir: Directory to save plots.
+    """
     metrics = metrics or list(METRIC_PROPERTIES.keys())
-    if save_dir and not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
 
     for dataset in datasets:
         for B in budgets:
             for metric in metrics:
-                save_path = None
-                if save_dir:
-                    save_path = f"{save_dir}/{dataset}_{metric}_budget_{B}.png"
+                save_path = f"{save_dir}/{dataset}_{metric}_budget_{B}.png" if save_dir else None
                 plot_metric(results[dataset], B, dataset, metric, save_path=save_path)
