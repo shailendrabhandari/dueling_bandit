@@ -1,4 +1,5 @@
-Dueling Bandit Toolkit
+# Dueling Bandit Toolkit
+
 A Python package for preference-based online learning with dueling bandits. This toolkit implements algorithms like Double Thompson Sampling, PARWiS, and Contextual PARWiS, with support for real-world datasets (Jester, MovieLens) and evaluation metrics.
 Features
 
@@ -39,7 +40,7 @@ pip install -r requirements.txt
 
 Development
 
-Clone the repository:git clone https://github.com/yourusername/dueling-bandit.git
+Clone the repository:git clone https://github.com/shailendrabhandari/dueling_bandit.git
 cd dueling-bandit
 
 
